@@ -32,13 +32,17 @@ class Database {
                     "name VARCHAR(24) NOT NULL, " +
                     "imgUrl VARCHAR(100) NOT NULL, " +
                     "price INT NOT NULL, " +
+                    "deleted TINYINT  DEFAULT 0," +
                     "create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                     "update_time TIMESTAMP DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP)";
             String sql1 = "CREATE TABLE IF NOT EXISTS sold_list (" +
                     "id INT AUTO_INCREMENT PRIMARY KEY, " +
                     "name VARCHAR(24) NOT NULL, " +
+                    "imgUrl VARCHAR(100) NOT NULL, " +
+                    "price INT NOT NULL, " +
                     "sold_count INT DEFAULT 0, " +
                     "total_price INT DEFAULT 0, " +
+                    "deleted TINYINT DEFAULT 0," +
                     "create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                     "update_time TIMESTAMP DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP)";
 
@@ -62,7 +66,7 @@ class Database {
         int maxPage = 1;
 
         // 查询 car_goods 表中的所有数据
-        String sql = "SELECT * FROM car_goods ORDER BY id DESC";
+        String sql = "SELECT * FROM car_goods WHERE deleted = 0 ORDER BY id DESC ";
 
         try {
             PreparedStatement queryStatement = connection.prepareStatement(sql);
@@ -77,6 +81,56 @@ class Database {
                 carGoods.put("name", resultSet.getString("name"));
                 carGoods.put("price", resultSet.getInt("price"));
                 carGoods.put("imgUrl", resultSet.getString("imgUrl"));
+
+                carGoods.put("page", currentPage);
+                // 将每一行数据添加到列表中
+                carGoodsList.add(carGoods);
+                // 如果当前页的记录数达到每页显示的记录数，则进入下一页
+                if (itemCount == pageSize) {
+                    currentPage++;
+                    itemCount = 0;
+                }
+            }
+            // 计算最大页码 根据carGoodsList长度计算 不能由currentPage得到
+            // Math.ceil() 方法用于向上取整
+            maxPage = (int) Math.ceil((double) carGoodsList.size() / pageSize);
+
+            // 关闭结果集和语句
+            resultSet.close();
+            queryStatement.close();
+
+            // 将查询到的数据和最大页码设置到响应对象中
+            responseObj.setCarGoodsList(carGoodsList);
+            responseObj.setMaxPage(maxPage);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return responseObj;
+    }
+
+    public static ResponseObj getInitListDateForManger() {
+        List<Map<String, Object>> carGoodsList = new ArrayList<>();
+        ResponseObj responseObj = new ResponseObj();
+        int maxPage = 1;
+        // 查询 car_goods 表中的所有数据
+        String sql = "SELECT * FROM sold_list ORDER BY id DESC ";
+        try {
+            PreparedStatement queryStatement = connection.prepareStatement(sql);
+            ResultSet resultSet = queryStatement.executeQuery();
+            int pageSize = 10; // 每页显示的记录数
+            int currentPage = 1; // 当前页码
+            int itemCount = 0; // 当前页的记录数
+            while (resultSet.next()) {
+                itemCount++;
+                Map<String, Object> carGoods = new HashMap<>();
+                carGoods.put("id", resultSet.getInt("id"));
+                carGoods.put("name", resultSet.getString("name"));
+                carGoods.put("imgUrl", resultSet.getString("imgUrl"));
+                carGoods.put("count", resultSet.getString("sold_count"));
+                carGoods.put("price", resultSet.getString("price"));
+                carGoods.put("status", resultSet.getInt("deleted"));
+
                 carGoods.put("page", currentPage);
                 // 将每一行数据添加到列表中
                 carGoodsList.add(carGoods);
@@ -111,13 +165,16 @@ class Database {
             Integer price = (Integer) object.get("price");
             // 创建插入 SQL 语句
             String insertSQL = "INSERT INTO car_goods (name, price, imgUrl) VALUES (?, ?, ?)";
-            String insertSQL2 = "INSERT INTO sold_list (name) VALUES (?)";
+            String insertSQL2 = "INSERT INTO sold_list (name,price,imgUrl) VALUES (?,?,?)";
             PreparedStatement preparedStatement = connection.prepareStatement(insertSQL);
             PreparedStatement preparedStatement2 = connection.prepareStatement(insertSQL2);
             preparedStatement.setString(1, name);
             preparedStatement.setInt(2, price);
             preparedStatement.setString(3, imgUrl);
             preparedStatement2.setString(1, name);
+            preparedStatement2.setInt(2, price);
+            preparedStatement2.setString(3, imgUrl);
+
             // 执行插入操作
             preparedStatement.executeUpdate();
             preparedStatement2.executeUpdate();
@@ -137,7 +194,7 @@ class Database {
             int price = object.getInt("price");
             // 创建插入 SQL 语句
             String updateSQL = "UPDATE car_goods SET name = ?, price = ?, imgUrl = ? WHERE id = ?";
-            String updateSQL2 = "UPDATE sold_list SET name = ? WHERE id = ?";
+            String updateSQL2 = "UPDATE sold_list SET name = ?,price = ?, imgUrl=? WHERE id = ?";
 
             PreparedStatement preparedStatement = connection.prepareStatement(updateSQL);
             PreparedStatement preparedStatement2 = connection.prepareStatement(updateSQL2);
@@ -147,7 +204,10 @@ class Database {
             preparedStatement.setString(3, imgUrl);
             preparedStatement.setInt(4, id);
             preparedStatement2.setString(1, name);
-            preparedStatement2.setInt(2, id);
+            preparedStatement2.setInt(2, price);
+            preparedStatement2.setString(3, imgUrl);
+            preparedStatement2.setInt(4, id);
+
             // 执行插入操作
             preparedStatement.executeUpdate();
             preparedStatement2.executeUpdate();
@@ -160,17 +220,26 @@ class Database {
         }
     }
 
-    public static void deleteGoods(int id) {
+    public static void changeGoodsStatus(int id,int status) {
         try {
-            // 创建删除 SQL 语句
-            String sql = "DELETE FROM car_goods WHERE id = ?";
-            PreparedStatement preparedStatement = connection.prepareStatement(sql);
-            // 设置参数
-            preparedStatement.setInt(1, id);
-            // 执行删除操作
+            String deleteSQL = "UPDATE car_goods SET deleted = ? WHERE id = ?";
+            String deleteSQL2 = "UPDATE sold_list SET deleted = ? WHERE id = ?";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(deleteSQL);
+            PreparedStatement preparedStatement2 = connection.prepareStatement(deleteSQL2);
+
+            preparedStatement.setInt(1, status);
+            preparedStatement.setInt(2, id);
+
+            preparedStatement2.setInt(1, status);
+            preparedStatement2.setInt(2, id);
+
+
             preparedStatement.executeUpdate();
-            // 关闭语句
+            preparedStatement2.executeUpdate();
+
             preparedStatement.close();
+            preparedStatement2.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -229,10 +298,11 @@ class SimpleHttpServer {
 
     public static void main(String[] args) {
         Database.init();
-        routes.put("/api/getGoods", SimpleHttpServer::handleGetGoods);
+        routes.put("/api/user/getGoods", SimpleHttpServer::handleGetGoods);
+        routes.put("/api/manager/getGoods", SimpleHttpServer::handleGetGoodsForManager);
         routes.put("/api/manager/addGoods", SimpleHttpServer::handleAddGoods);
         routes.put("/api/manager/updateGoods", SimpleHttpServer::handleUpdateGoods);
-        routes.put("/api/manager/deleteGoods", SimpleHttpServer::handleDeleteGoods);
+        routes.put("/api/manager/changeStatusGoods", SimpleHttpServer::handleChangeGoodsStatus);
         routes.put("/api/user/buyGoods", SimpleHttpServer::handleBuysGoods);
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -258,6 +328,21 @@ class SimpleHttpServer {
     public static void handleGetGoods(Request req, Response res) {
         if (req.method == HttpMethod.GET) {
             Database.ResponseObj responseObj = Database.getInitListDate();
+            List<Map<String, Object>> carGoodsList = responseObj.getCarGoodsList();
+            int maxPage = responseObj.getMaxPage();
+            JSONArray carGoodsArray = new JSONArray(carGoodsList);
+            JSONObject response = new JSONObject();
+            response.put("carGoodsList", carGoodsArray);
+            response.put("maxPage", maxPage);
+            res.sendJSON(HttpStatus.OK, response);
+        } else {
+            res.sendStatus(HttpStatus.METHOD_NOT_ALLOWED);
+        }
+    }
+
+    public static void handleGetGoodsForManager(Request req, Response res) {
+        if (req.method == HttpMethod.GET) {
+            Database.ResponseObj responseObj = Database.getInitListDateForManger();
             List<Map<String, Object>> carGoodsList = responseObj.getCarGoodsList();
             int maxPage = responseObj.getMaxPage();
             JSONArray carGoodsArray = new JSONArray(carGoodsList);
@@ -309,15 +394,16 @@ class SimpleHttpServer {
         }
     }
 
-    public static void handleDeleteGoods(Request req, Response res) throws IOException {
+    public static void handleChangeGoodsStatus(Request req, Response res) throws IOException {
         if (req.method == HttpMethod.OPTIONS) {
             res.sendOptions("POST, OPTIONS");
-        } else if (req.method == HttpMethod.DELETE) {
+        } else if (req.method == HttpMethod.PUT) {
             JSONObject request = req.readJSON();
             int id = request.getInt("id");
+            int status = request.getInt("status");
             JSONObject response = new JSONObject();
             response.put("msg", "delete success");
-            Database.deleteGoods(id);
+            Database.changeGoodsStatus(id,status);
             res.sendJSON(HttpStatus.OK, response);
         } else {
             res.sendStatus(HttpStatus.METHOD_NOT_ALLOWED);
