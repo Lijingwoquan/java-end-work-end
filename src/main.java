@@ -1,3 +1,4 @@
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -54,32 +55,52 @@ class Database {
         }
     }
 
-    public static List<Map<String, Object>> getInitListDate() {
+    public static ResponseObj getInitListDate() {
         List<Map<String, Object>> carGoodsList = new ArrayList<>();
-        try {
-            // 查询 car_goods 表中的所有数据
-            String query = "SELECT * FROM car_goods";
-            PreparedStatement queryStatement = connection.prepareStatement(query);
-            ResultSet resultSet = queryStatement.executeQuery();
+        ResponseObj responseObj = new ResponseObj();
+        int maxPage = 1;
 
-            // 处理结果集
+        // 查询 car_goods 表中的所有数据
+        String sql = "SELECT * FROM car_goods ORDER BY id DESC";
+
+        try {
+            PreparedStatement queryStatement = connection.prepareStatement(sql);
+            ResultSet resultSet = queryStatement.executeQuery();
+            int pageSize = 10; // 每页显示的记录数
+            int currentPage = 1; // 当前页码
+            int itemCount = 0; // 当前页的记录数
             while (resultSet.next()) {
+                itemCount++;
                 Map<String, Object> carGoods = new HashMap<>();
                 carGoods.put("id", resultSet.getInt("id"));
                 carGoods.put("name", resultSet.getString("name"));
                 carGoods.put("price", resultSet.getInt("price"));
                 carGoods.put("imgUrl", resultSet.getString("imgUrl"));
+                carGoods.put("page", currentPage);
                 // 将每一行数据添加到列表中
                 carGoodsList.add(carGoods);
+                // 如果当前页的记录数达到每页显示的记录数，则进入下一页
+                if (itemCount == pageSize) {
+                    currentPage++;
+                    itemCount = 0;
+                }
             }
+            // 计算最大页码 根据carGoodsList长度计算 不能由currentPage得到
+            // Math.ceil() 方法用于向上取整
+            maxPage = (int) Math.ceil((double) carGoodsList.size() / pageSize);
+
             // 关闭结果集和语句
             resultSet.close();
             queryStatement.close();
 
+            // 将查询到的数据和最大页码设置到响应对象中
+            responseObj.setCarGoodsList(carGoodsList);
+            responseObj.setMaxPage(maxPage);
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return carGoodsList;
+        return responseObj;
     }
 
     public static void addGoods(JSONObject object) {
@@ -123,6 +144,46 @@ class Database {
             e.printStackTrace();
         }
     }
+
+    public static void deleteGoods(int id) {
+        try {
+            // 创建删除 SQL 语句
+            String sql = "DELETE FROM car_goods WHERE id = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            // 设置参数
+            preparedStatement.setInt(1, id);
+            // 执行删除操作
+            preparedStatement.executeUpdate();
+            // 关闭语句
+            preparedStatement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 定义一个表示响应对象的类
+    public static class ResponseObj {
+        private List<Map<String, Object>> carGoodsList;
+        private int maxPage;
+
+        // getter 和 setter 方法
+        public List<Map<String, Object>> getCarGoodsList() {
+            return carGoodsList;
+        }
+
+        public void setCarGoodsList(List<Map<String, Object>> carGoodsList) {
+            this.carGoodsList = carGoodsList;
+        }
+
+        public int getMaxPage() {
+            return maxPage;
+        }
+
+        public void setMaxPage(int maxPage) {
+            this.maxPage = maxPage;
+        }
+    }
+
 }
 
 
@@ -138,6 +199,7 @@ class SimpleHttpServer {
         routes.put("/api/getGoods", SimpleHttpServer::handleGetGoods);
         routes.put("/api/manager/addGoods", SimpleHttpServer::handleAddGoods);
         routes.put("/api/manager/updateGoods", SimpleHttpServer::handleUpdateGoods);
+        routes.put("/api/manager/deleteGoods", SimpleHttpServer::handleDeleteGoods);
         routes.put("/api/user/buysGoods", SimpleHttpServer::handleBuysGoods);
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -153,31 +215,33 @@ class SimpleHttpServer {
         }
     }
 
-
     public static void handle404(Request req, Response res) {
         JSONObject response = new JSONObject();
         response.put("msg", "404");
         res.sendStatus(HttpStatus.NOT_FOUND);
         res.sendJSON(HttpStatus.OK, response);
     }
-    public static void handleGetGoods(SimpleHttpServer.Request req, SimpleHttpServer.Response res) {
+
+    public static void handleGetGoods(Request req, Response res) {
         if (req.method == HttpMethod.GET) {
-            res.sendOptions("POST, OPTIONS");
+            Database.ResponseObj responseObj = Database.getInitListDate();
+            List<Map<String, Object>> carGoodsList = responseObj.getCarGoodsList();
+            int maxPage = responseObj.getMaxPage();
+            JSONArray carGoodsArray = new JSONArray(carGoodsList);
             JSONObject response = new JSONObject();
-            List<Map<String, Object>> carGoodsList;
-            carGoodsList =  Database.getInitListDate();
-            response.put("msg", carGoodsList);
-            res.sendJSON(SimpleHttpServer.HttpStatus.OK, response);
+            response.put("carGoodsList", carGoodsArray);
+            response.put("maxPage", maxPage);
+            res.sendJSON(HttpStatus.OK, response);
         } else {
-            res.sendStatus(SimpleHttpServer.HttpStatus.METHOD_NOT_ALLOWED);
+            res.sendStatus(HttpStatus.METHOD_NOT_ALLOWED);
         }
     }
-    public static void handleAddGoods(SimpleHttpServer.Request req, SimpleHttpServer.Response res) throws IOException {
-        if (req.method == SimpleHttpServer.HttpMethod.OPTIONS) {
+
+    public static void handleAddGoods(Request req, Response res) throws IOException {
+        if (req.method == HttpMethod.OPTIONS) {
             res.sendOptions("POST, OPTIONS");
-        } else if (req.method == SimpleHttpServer.HttpMethod.POST) {
+        } else if (req.method == HttpMethod.POST) {
             JSONObject request = req.readJSON();
-            System.out.println(request);
             String name = request.getString("name");
             int price = request.getInt("price");
             String imgUrl = request.getString("imgUrl");
@@ -185,15 +249,16 @@ class SimpleHttpServer {
             request.put("name", name);
             request.put("imgUrl", imgUrl);
             Database.addGoods(request);
-            res.sendJSON(SimpleHttpServer.HttpStatus.OK, request);
+            res.sendJSON(HttpStatus.OK, request);
         } else {
-            res.sendStatus(SimpleHttpServer.HttpStatus.METHOD_NOT_ALLOWED);
+            res.sendStatus(HttpStatus.METHOD_NOT_ALLOWED);
         }
     }
-    public static void handleUpdateGoods(SimpleHttpServer.Request req, SimpleHttpServer.Response res) throws IOException {
-        if (req.method == SimpleHttpServer.HttpMethod.OPTIONS) {
+
+    public static void handleUpdateGoods(Request req, Response res) throws IOException {
+        if (req.method == HttpMethod.OPTIONS) {
             res.sendOptions("POST, OPTIONS");
-        } else if (req.method == SimpleHttpServer.HttpMethod.POST) {
+        } else if (req.method == HttpMethod.POST) {
             JSONObject request = req.readJSON();
             String name = request.getString("name");
             int price = request.getInt("price");
@@ -205,25 +270,65 @@ class SimpleHttpServer {
             response.put("price", price);
             response.put("imgUrl", imgUrl);
             Database.updateGoods(response);
-            res.sendJSON(SimpleHttpServer.HttpStatus.OK, response);
+            res.sendJSON(HttpStatus.OK, response);
         } else {
-            res.sendStatus(SimpleHttpServer.HttpStatus.METHOD_NOT_ALLOWED);
+            res.sendStatus(HttpStatus.METHOD_NOT_ALLOWED);
         }
     }
-    public static void handleBuysGoods(SimpleHttpServer.Request req, SimpleHttpServer.Response res) throws IOException {
-        if (req.method == SimpleHttpServer.HttpMethod.OPTIONS) {
+
+    public static void handleDeleteGoods(Request req, Response res) throws IOException {
+        if (req.method == HttpMethod.OPTIONS) {
             res.sendOptions("POST, OPTIONS");
-        } else if (req.method == SimpleHttpServer.HttpMethod.POST) {
+        } else if (req.method == HttpMethod.DELETE) {
+            JSONObject request = req.readJSON();
+            int id = request.getInt("id");
+            JSONObject response = new JSONObject();
+            response.put("msg", "delete success");
+            Database.deleteGoods(id);
+            res.sendJSON(HttpStatus.OK, response);
+        } else {
+            res.sendStatus(HttpStatus.METHOD_NOT_ALLOWED);
+        }
+    }
+
+    public static void handleBuysGoods(Request req, Response res) throws IOException {
+        if (req.method == HttpMethod.OPTIONS) {
+            res.sendOptions("POST, OPTIONS");
+        } else if (req.method == HttpMethod.POST) {
             JSONObject request = req.readJSON();
 
 //            res.sendJSON(SimpleHttpServer.HttpStatus.OK, response);
         } else {
-            res.sendStatus(SimpleHttpServer.HttpStatus.METHOD_NOT_ALLOWED);
+            res.sendStatus(HttpStatus.METHOD_NOT_ALLOWED);
         }
     }
 
+    public static void handleClient(Socket clientSocket) {
+        try (clientSocket;
+             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
+             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8))) {
+            String requestLine = in.readLine();
+            if (requestLine == null) return;
+            System.out.println("Request: " + requestLine);
+            String[] parts = requestLine.split(" ");
+            if (parts.length < 2) return;
+
+            HttpMethod method = HttpMethod.valueOf(parts[0]);
+            String path = parts[1];
+
+            if (method == HttpMethod.OPTIONS) {
+                new Response(out).sendOptions("GET, POST, PUT, DELETE, OPTIONS");
+            } else {
+                HttpHandler handler = routes.getOrDefault(path, SimpleHttpServer::handle404);
+                handler.handle(new Request(in, method), new Response(out));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public enum HttpMethod {GET, POST, PUT, DELETE, OPTIONS}
+
     public enum HttpStatus {
         OK(200, "OK"), NOT_FOUND(404, "Not Found"), METHOD_NOT_ALLOWED(405, "Method Not Allowed");
         public final int code;
@@ -234,34 +339,9 @@ class SimpleHttpServer {
             this.message = message;
         }
     }
+
     public interface HttpHandler {
         void handle(Request req, Response res) throws IOException;
-    }
-
-    public static void handleClient(Socket clientSocket) {
-            try (clientSocket;
-                 BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
-                 BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8))) {
-
-                String requestLine = in.readLine();
-                if (requestLine == null) return;
-
-                System.out.println("Request: " + requestLine);
-                String[] parts = requestLine.split(" ");
-                if (parts.length < 2) return;
-
-                HttpMethod method = HttpMethod.valueOf(parts[0]);
-                String path = parts[1];
-
-                if (method == HttpMethod.OPTIONS) {
-                    new Response(out).sendOptions("GET, POST, PUT, DELETE, OPTIONS");
-                } else {
-                    HttpHandler handler = routes.getOrDefault(path, SimpleHttpServer::handle404);
-                    handler.handle(new Request(in, method), new Response(out));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
     }
 
     public static class Request {
@@ -278,7 +358,7 @@ class SimpleHttpServer {
             String line;
             int contentLength = 0;
             while (!(line = in.readLine()).isEmpty()) {
-                if (line.startsWith("Content-Length:")) {
+                if (line.toLowerCase().startsWith("content-length:")) {
                     contentLength = Integer.parseInt(line.split(": ")[1]);
                 }
             }
@@ -287,13 +367,14 @@ class SimpleHttpServer {
                 in.read(buffer, 0, contentLength);
                 body.append(buffer);
             }
-            System.out.println("Received JSON: " + body.toString()); // 调试用
+            System.out.println("Received JSON: " + body); // 调试用
             return new JSONObject(body.toString());
         }
     }
 
     public static class Response {
         private final PrintWriter out;
+
         Response(Writer out) {
             this.out = new PrintWriter(out, true);
         }
@@ -314,7 +395,14 @@ class SimpleHttpServer {
 
         public void sendJSON(HttpStatus status, JSONObject json) {
             String body = json.toString();
-            out.println(body);
+            out.printf("HTTP/1.1 %d %s\r\n", status.code, status.message);
+            out.printf("Server: %s\r\n", SERVER_NAME);
+            out.printf("Content-Type: application/json\r\n");
+            out.printf("Content-Length: %d\r\n", body.length());
+            out.printf("Connection: close\r\n");
+            out.printf("\r\n");
+            out.print(body);
+            out.flush();
         }
     }
 }
