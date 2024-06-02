@@ -37,7 +37,8 @@ class Database {
             String sql1 = "CREATE TABLE IF NOT EXISTS sold_list (" +
                     "id INT AUTO_INCREMENT PRIMARY KEY, " +
                     "name VARCHAR(24) NOT NULL, " +
-                    "total_price INT NOT NULL, " +
+                    "sold_count INT DEFAULT 0, " +
+                    "total_price INT DEFAULT 0, " +
                     "create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                     "update_time TIMESTAMP DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP)";
 
@@ -110,14 +111,19 @@ class Database {
             Integer price = (Integer) object.get("price");
             // 创建插入 SQL 语句
             String insertSQL = "INSERT INTO car_goods (name, price, imgUrl) VALUES (?, ?, ?)";
+            String insertSQL2 = "INSERT INTO sold_list (name) VALUES (?)";
             PreparedStatement preparedStatement = connection.prepareStatement(insertSQL);
+            PreparedStatement preparedStatement2 = connection.prepareStatement(insertSQL2);
             preparedStatement.setString(1, name);
             preparedStatement.setInt(2, price);
             preparedStatement.setString(3, imgUrl);
+            preparedStatement2.setString(1, name);
             // 执行插入操作
             preparedStatement.executeUpdate();
+            preparedStatement2.executeUpdate();
             // 关闭语句
             preparedStatement.close();
+            preparedStatement2.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -131,15 +137,24 @@ class Database {
             int price = object.getInt("price");
             // 创建插入 SQL 语句
             String updateSQL = "UPDATE car_goods SET name = ?, price = ?, imgUrl = ? WHERE id = ?";
+            String updateSQL2 = "UPDATE sold_list SET name = ? WHERE id = ?";
+
             PreparedStatement preparedStatement = connection.prepareStatement(updateSQL);
+            PreparedStatement preparedStatement2 = connection.prepareStatement(updateSQL2);
+
             preparedStatement.setString(1, name);
             preparedStatement.setInt(2, price);
             preparedStatement.setString(3, imgUrl);
             preparedStatement.setInt(4, id);
+            preparedStatement2.setString(1, name);
+            preparedStatement2.setInt(2, id);
             // 执行插入操作
             preparedStatement.executeUpdate();
+            preparedStatement2.executeUpdate();
+
             // 关闭语句
             preparedStatement.close();
+            preparedStatement2.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -161,7 +176,26 @@ class Database {
         }
     }
 
-    // 定义一个表示响应对象的类
+    public static void buyGoods(JSONObject goodsList) {
+        JSONArray arr = goodsList.getJSONArray("goodsList");
+        for (int i = 0; i < arr.length(); i++) {
+            JSONObject item = arr.getJSONObject(i);
+            int id = item.getInt("id");
+            int soldCount = item.getInt("count");
+            int totalPrice = item.getInt("totalPrice");
+            String sql = "UPDATE sold_list SET sold_count = sold_count + ?, total_price = total_price + ?  WHERE id = ?";
+            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+                stmt.setInt(1, soldCount);
+                stmt.setInt(2, totalPrice);
+                stmt.setInt(3, id);
+                stmt.executeUpdate();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // 表示响应对象的类
     public static class ResponseObj {
         private List<Map<String, Object>> carGoodsList;
         private int maxPage;
@@ -183,7 +217,6 @@ class Database {
             this.maxPage = maxPage;
         }
     }
-
 }
 
 
@@ -200,7 +233,7 @@ class SimpleHttpServer {
         routes.put("/api/manager/addGoods", SimpleHttpServer::handleAddGoods);
         routes.put("/api/manager/updateGoods", SimpleHttpServer::handleUpdateGoods);
         routes.put("/api/manager/deleteGoods", SimpleHttpServer::handleDeleteGoods);
-        routes.put("/api/user/buysGoods", SimpleHttpServer::handleBuysGoods);
+        routes.put("/api/user/buyGoods", SimpleHttpServer::handleBuysGoods);
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("Server started on port " + PORT);
@@ -296,8 +329,11 @@ class SimpleHttpServer {
             res.sendOptions("POST, OPTIONS");
         } else if (req.method == HttpMethod.POST) {
             JSONObject request = req.readJSON();
-
-//            res.sendJSON(SimpleHttpServer.HttpStatus.OK, response);
+            System.out.println(request);
+            Database.buyGoods(request);
+            JSONObject response = new JSONObject();
+            response.put("msg", "buy success");
+            res.sendJSON(HttpStatus.OK, response);
         } else {
             res.sendStatus(HttpStatus.METHOD_NOT_ALLOWED);
         }
