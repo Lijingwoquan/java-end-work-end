@@ -27,7 +27,7 @@ public class mysql {
                     "name VARCHAR(24) NOT NULL, " +
                     "imgUrl VARCHAR(100) NOT NULL, " +
                     "price INT NOT NULL, " +
-                    "deleted TINYINT  DEFAULT 0," +
+                    "status TINYINT  DEFAULT 1," +
                     "create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                     "update_time TIMESTAMP DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP)";
             String sql1 = "CREATE TABLE IF NOT EXISTS sold_list (" +
@@ -37,7 +37,7 @@ public class mysql {
                     "price INT NOT NULL, " +
                     "sold_count INT DEFAULT 0, " +
                     "total_price INT DEFAULT 0, " +
-                    "deleted TINYINT DEFAULT 0," +
+                    "status TINYINT DEFAULT 1," +
                     "create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                     "update_time TIMESTAMP DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP)";
 
@@ -59,7 +59,7 @@ public class mysql {
         int maxPage;
 
         // 查询 car_goods 表中的所有数据
-        String sql = "SELECT * FROM car_goods WHERE deleted = 0 ORDER BY id DESC ";
+        String sql = "SELECT * FROM car_goods WHERE status = 1 ORDER BY id DESC ";
 
         try {
             PreparedStatement queryStatement = connection.prepareStatement(sql);
@@ -121,8 +121,8 @@ public class mysql {
                 carGoods.put("name", resultSet.getString("name"));
                 carGoods.put("imgUrl", resultSet.getString("imgUrl"));
                 carGoods.put("count", resultSet.getString("sold_count"));
-                carGoods.put("price", resultSet.getString("price"));
-                carGoods.put("status", resultSet.getInt("deleted"));
+                carGoods.put("price", resultSet.getInt("price"));
+                carGoods.put("status", resultSet.getInt("status"));
 
                 carGoods.put("page", currentPage);
                 // 将每一行数据添加到列表中
@@ -215,11 +215,11 @@ public class mysql {
 
     public static void changeGoodsStatus(int id,int status) {
         try {
-            String deleteSQL = "UPDATE car_goods SET deleted = ? WHERE id = ?";
-            String deleteSQL2 = "UPDATE sold_list SET deleted = ? WHERE id = ?";
+            String changeStatusSQL = "UPDATE car_goods SET status = ? WHERE id = ?";
+            String changeStatusSQL2 = "UPDATE sold_list SET status = ? WHERE id = ?";
 
-            PreparedStatement preparedStatement = connection.prepareStatement(deleteSQL);
-            PreparedStatement preparedStatement2 = connection.prepareStatement(deleteSQL2);
+            PreparedStatement preparedStatement = connection.prepareStatement(changeStatusSQL);
+            PreparedStatement preparedStatement2 = connection.prepareStatement(changeStatusSQL2);
 
             preparedStatement.setInt(1, status);
             preparedStatement.setInt(2, id);

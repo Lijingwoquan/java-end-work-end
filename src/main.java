@@ -38,7 +38,6 @@ class SimpleHttpServer {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 threadPool.submit(() -> handler.handleClient(clientSocket));
-                System.out.println("cnm");
             }
         } catch (IOException e) {
             e.printStackTrace();

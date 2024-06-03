@@ -2,14 +2,12 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
 public class httpResponse {
     private final ByteArrayOutputStream baos;
 
-    httpResponse(OutputStream out) {
+    httpResponse() {
         this.baos = new ByteArrayOutputStream();
     }
 
@@ -30,14 +28,14 @@ public class httpResponse {
 
     public void sendJSON(SimpleHttpServer.HttpStatus status, JSONObject json) throws IOException {
         byte[] body = json.toString().getBytes(StandardCharsets.UTF_8);
-        System.out.println(json);
-
         String headers = "HTTP/1.1 " + status.code + " " + status.message + "\r\n" +
                 "Server: " + SimpleHttpServer.SERVER_NAME + "\r\n" +
                 "Content-Type: application/json\r\n" +
                 "Content-Length: " + body.length + "\r\n" +
                 "Connection: close\r\n\r\n";
+        //写入请求头
         baos.write(headers.getBytes(StandardCharsets.UTF_8));
+        //写入请求体
         baos.write(body);
     }
 

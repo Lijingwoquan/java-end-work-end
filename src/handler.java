@@ -1,4 +1,7 @@
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
@@ -17,7 +20,7 @@ public class handler {
             SimpleHttpServer.HttpMethod method = SimpleHttpServer.HttpMethod.valueOf(parts[0]);
             String path = parts[1];
 
-            httpResponse response = new httpResponse(out);
+            httpResponse response = new httpResponse();
             if (method == SimpleHttpServer.HttpMethod.OPTIONS) {
                 response.sendOptions("GET, POST, PUT, DELETE, OPTIONS");
             } else {
@@ -32,6 +35,7 @@ public class handler {
             e.printStackTrace();
         }
     }
+
     public interface HttpHandler {
         void handle(httpRequest req, httpResponse res) throws IOException;
     }
