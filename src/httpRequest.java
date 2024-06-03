@@ -1,11 +1,11 @@
 import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class httpRequest {
     public SimpleHttpServer.HttpMethod method;
-    private final BufferedReader in;
+    private  BufferedReader in ;
 
     public  httpRequest(BufferedReader in, SimpleHttpServer.HttpMethod method) {
         this.in = in;

@@ -1,39 +1,47 @@
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 
 public class httpResponse {
-        private final PrintWriter out;
+    private final ByteArrayOutputStream baos;
 
-        httpResponse(Writer out) {
-            this.out = new PrintWriter(out, true);
-        }
+    httpResponse(OutputStream out) {
+        this.baos = new ByteArrayOutputStream();
+    }
 
-        public void sendStatus(SimpleHttpServer.HttpStatus status) {
-            out.printf("HTTP/1.1 %d %s%n", status.code, status.message);
-            out.printf("Server: %s%n%n", SimpleHttpServer.SERVER_NAME);
-        }
+    public void sendStatus(SimpleHttpServer.HttpStatus status) throws IOException {
+        String statusLine = "HTTP/1.1 " + status.code + " " + status.message + "\r\n";
+        baos.write(statusLine.getBytes(StandardCharsets.UTF_8));
+        baos.write(("Server: " + SimpleHttpServer.SERVER_NAME + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+    }
 
-        public void sendOptions(String allowedMethods) {
-            out.println("HTTP/1.1 200 OK");
-            out.printf("Allow: %s%n", allowedMethods);
-            out.println("Access-Control-Allow-Origin: *");
-            out.printf("Access-Control-Allow-Methods: %s%n", allowedMethods);
-            out.println("Access-Control-Allow-Headers: Content-Type");
-            out.println();
-        }
+    public void sendOptions(String allowedMethods) throws IOException {
+        String response = "HTTP/1.1 200 OK\r\n" +
+                "Allow: " + allowedMethods + "\r\n" +
+                "Access-Control-Allow-Origin: *\r\n" +
+                "Access-Control-Allow-Methods: " + allowedMethods + "\r\n" +
+                "Access-Control-Allow-Headers: Content-Type\r\n\r\n";
+        baos.write(response.getBytes(StandardCharsets.UTF_8));
+    }
 
-        public void sendJSON(SimpleHttpServer.HttpStatus status, JSONObject json) {
-            String body = json.toString();
-            out.printf("HTTP/1.1 %d %s\r\n", status.code, status.message);
-            out.printf("Server: %s\r\n", SimpleHttpServer.SERVER_NAME);
-            out.printf("Content-Type: application/json\r\n");
-            out.printf("Content-Length: %d\r\n", body.length());
-            out.printf("Connection: close\r\n");
-            out.printf("\r\n");
-            out.print(body);
-            out.flush();
-        }
+    public void sendJSON(SimpleHttpServer.HttpStatus status, JSONObject json) throws IOException {
+        byte[] body = json.toString().getBytes(StandardCharsets.UTF_8);
+        System.out.println(json);
 
+        String headers = "HTTP/1.1 " + status.code + " " + status.message + "\r\n" +
+                "Server: " + SimpleHttpServer.SERVER_NAME + "\r\n" +
+                "Content-Type: application/json\r\n" +
+                "Content-Length: " + body.length + "\r\n" +
+                "Connection: close\r\n\r\n";
+        baos.write(headers.getBytes(StandardCharsets.UTF_8));
+        baos.write(body);
+    }
+
+    public byte[] getResponse() {
+        return baos.toByteArray();
+    }
 }

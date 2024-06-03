@@ -9,8 +9,16 @@ public class controller {
     public  static void handle404(httpRequest req, httpResponse res) {
         JSONObject response = new JSONObject();
         response.put("msg", "404");
-        res.sendStatus(SimpleHttpServer.HttpStatus.NOT_FOUND);
-        res.sendJSON(SimpleHttpServer.HttpStatus.OK, response);
+        try {
+            res.sendStatus(SimpleHttpServer.HttpStatus.NOT_FOUND);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            res.sendJSON(SimpleHttpServer.HttpStatus.OK, response);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void getGoods(httpResponse res, mysql.ResponseObj responseObj) {
@@ -20,7 +28,11 @@ public class controller {
         JSONObject response = new JSONObject();
         response.put("carGoodsList", carGoodsArray);
         response.put("maxPage", maxPage);
-        res.sendJSON(SimpleHttpServer.HttpStatus.OK, response);
+        try {
+            res.sendJSON(SimpleHttpServer.HttpStatus.OK, response);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void handleGetGoodsForUser(httpRequest req, httpResponse res) {
@@ -28,7 +40,11 @@ public class controller {
             mysql.ResponseObj responseObj = mysql.getInitListDateForUser();
             getGoods(res, responseObj);
         } else {
-            res.sendStatus(SimpleHttpServer.HttpStatus.METHOD_NOT_ALLOWED);
+            try {
+                res.sendStatus(SimpleHttpServer.HttpStatus.METHOD_NOT_ALLOWED);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -37,7 +53,11 @@ public class controller {
             mysql.ResponseObj responseObj = mysql.getInitListDateForManger();
             getGoods(res, responseObj);
         } else {
-            res.sendStatus(SimpleHttpServer.HttpStatus.METHOD_NOT_ALLOWED);
+            try {
+                res.sendStatus(SimpleHttpServer.HttpStatus.METHOD_NOT_ALLOWED);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
