@@ -9,9 +9,9 @@ import java.util.Map;
 
 public class mysql {
 
-    private static final String URL = "jdbc:mysql://localhost:3306/shopCar";
+    private static final String URL = "jdbc:mysql://java_mysql/shopCar";
     private static final String USERNAME = "root";
-    private static final String PASSWORD = "..Lzh20050807..";
+    private static final String PASSWORD = "liuzihao520";
     private static Connection connection;
 
     public static void init() {
@@ -111,7 +111,7 @@ public class mysql {
         try {
             PreparedStatement queryStatement = connection.prepareStatement(sql);
             ResultSet resultSet = queryStatement.executeQuery();
-            int pageSize = 10; // 每页显示的记录数
+            int pageSize = 5; // 每页显示的记录数
             int currentPage = 1; // 当前页码
             int itemCount = 0; // 当前页的记录数
             while (resultSet.next()) {

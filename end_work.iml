@@ -10,7 +10,7 @@
     <orderEntry type="module-library" exported="">
       <library>
         <CLASSES>
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/json-20240303" />
+          <root url="file://$MODULE_DIR$/libs/json" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
@@ -19,22 +19,22 @@
     <orderEntry type="module-library" exported="">
       <library>
         <CLASSES>
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0" />
+          <root url="file://$MODULE_DIR$/libs/mysql" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0/src/build/java" />
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0/src/demo/java" />
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0/src/generated/java" />
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0/src/legacy/java" />
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0/src/main/core-api/java" />
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0/src/main/core-impl/java" />
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0/src/main/protocol-impl/java" />
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0/src/main/user-api/java" />
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0/src/main/user-impl/java" />
-          <root url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0/src/test/java" />
+          <root url="file://$MODULE_DIR$/libs/mysql/src/build/java" />
+          <root url="file://$MODULE_DIR$/libs/mysql/src/demo/java" />
+          <root url="file://$MODULE_DIR$/libs/mysql/src/generated/java" />
+          <root url="file://$MODULE_DIR$/libs/mysql/src/legacy/java" />
+          <root url="file://$MODULE_DIR$/libs/mysql/src/main/core-api/java" />
+          <root url="file://$MODULE_DIR$/libs/mysql/src/main/core-impl/java" />
+          <root url="file://$MODULE_DIR$/libs/mysql/src/main/protocol-impl/java" />
+          <root url="file://$MODULE_DIR$/libs/mysql/src/main/user-api/java" />
+          <root url="file://$MODULE_DIR$/libs/mysql/src/main/user-impl/java" />
+          <root url="file://$MODULE_DIR$/libs/mysql/src/test/java" />
         </SOURCES>
-        <jarDirectory url="file://$MODULE_DIR$/../../../waitToDispose/mysql-connector-j-8.4.0" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/libs/mysql" recursive="false" />
       </library>
     </orderEntry>
   </component>

@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: java_mysql
+    environment:
+      #配置你的密码
+      MYSQL_ROOT_PASSWORD: liuzihao520
+      MYSQL_DATABASE: shopCar
+      LANG: C.UTF-8
+        - TZ=Asia/Shanghai
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # 注意这里的路径映射  默认情况下，MySQL容器的入口脚本会自动执行/docker-entrypoint-initdb.d/目录下的SQL文件。
+      - java_mysql_data:/var/lib/mysql
+    ports:
+      - "3309:3306"
+  java-end-work:
+    container_name: java-end-word
+    build:
+      context: .
+      dockerfile: Dockerfile  # 指定你的 Dockerfile 文件路径
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mysql
+volumes:
+  java_mysql_data:

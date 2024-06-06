@@ -29,6 +29,7 @@ public class httpResponse {
     public void sendJSON(SimpleHttpServer.HttpStatus status, JSONObject json) throws IOException {
         byte[] body = json.toString().getBytes(StandardCharsets.UTF_8);
         String headers = "HTTP/1.1 " + status.code + " " + status.message + "\r\n" +
+                "Access-Control-Allow-Origin: *\r\n" +
                 "Server: " + SimpleHttpServer.SERVER_NAME + "\r\n" +
                 "Content-Type: application/json\r\n" +
                 "Content-Length: " + body.length + "\r\n" +

@@ -5,12 +5,13 @@ import java.nio.charset.StandardCharsets;
 
 public class httpRequest {
     public SimpleHttpServer.HttpMethod method;
-    private  BufferedReader in ;
+    private BufferedReader in;
 
-    public  httpRequest(BufferedReader in, SimpleHttpServer.HttpMethod method) {
+    public httpRequest(BufferedReader in, SimpleHttpServer.HttpMethod method) {
         this.in = in;
         this.method = method;
     }
+
     public JSONObject readJSON() throws IOException {
         StringBuilder body = new StringBuilder();
         String line;
@@ -25,7 +26,7 @@ public class httpRequest {
             in.read(buffer, 0, contentLength);
             body.append(buffer);
         }
-        System.out.println("Received JSON: " + body); // 调试用
+        System.out.println("Received JSON: " + body.toString()); // 调试用
         return new JSONObject(body.toString());
     }
 }
